@@ -55,4 +55,22 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const logout = async (req: Request, res: Response): Promise<void> => {};
+// export const logout = async (req: Request, res: Response): Promise<void> => {};
+
+import redisClient from "../utils/redisClient";
+export const logout = async (req: Request, res: Response): Promise<void> => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    res.status(401).json({ error: ERROR_MESSAGES.UNAUTHORIZED });
+    return;
+  }
+
+  try {
+    const tokenExpiry = 60 * 60; 
+    await redisClient.setEx(`blacklist:${token}`, tokenExpiry, "true");
+
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+};
